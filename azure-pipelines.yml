@@ -2,7 +2,7 @@ trigger:
 - main
 
 variables:
-  FEED_DETAILS: '0b6619d2-fc84-4d1f-a0bc-b4f5c8eefa5a'
+  FEED_DETAILS: 'Nike-landing/Nike-landingpage'
 
 stages:
 - stage: Build
