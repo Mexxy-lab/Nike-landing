@@ -90,7 +90,7 @@ stages:
                     --name $(WEBAPP_NAME) \
                     --resource-group $(RESOURCE_GROUP) \
                     --plan $(APP_PLAN) \
-                    --runtime "staticsite|1.0"
+                    --runtime "NODE|18-lts"
                 fi
 
           # --------------------------
@@ -110,7 +110,7 @@ stages:
               appType: webAppLinux
               WebAppName: $(WEBAPP_NAME)
               packageForLinux: '$(Pipeline.Workspace)/drop'
-              RuntimeStack: 'STATICSITE|1.0'
+              RuntimeStack: 'NODE|18-lts'
               StartupCommand: ''
 
           # --------------------------
@@ -125,3 +125,4 @@ stages:
               inlineScript: |
                 echo "Copying package content to wwwroot..."
                 cp -rf $(Pipeline.Workspace)/drop/* /home/site/wwwroot/
+
