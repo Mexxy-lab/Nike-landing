@@ -46,6 +46,7 @@ stages:
   dependsOn: Build
   jobs:
   - deployment: DeployJob
+    environment: 'production'
     pool:
       vmImage: 'ubuntu-latest'
 
