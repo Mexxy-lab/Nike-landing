@@ -85,8 +85,7 @@ stages:
                   --name $(WEBAPP_NAME) \
                   --resource-group $(RESOURCE_GROUP) \
                   --plan $(APP_PLAN) \
-                  --runtime "staticsite|1.0" \
-                  --location $(LOCATION)
+                  --runtime "staticsite|1.0"
           # --------------------------
           # Download build artifact
           # --------------------------
