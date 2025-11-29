@@ -3,7 +3,7 @@ trigger:
 
 variables:
   RESOURCE_GROUP: "Nike-RG"
-  LOCATION: "eastus"
+  LOCATION: "canadacentral"
   APP_PLAN: "Nike-AppServicePlan"
   WEBAPP_NAME: "Nike-landingpage"
   SERVICE_CONNECTION: "Nike-service connection"
@@ -58,9 +58,6 @@ stages:
         deploy:
           steps:
 
-          # --------------------------
-          # Create Resource Group, App Service Plan, Web App
-          # --------------------------
           - task: AzureCLI@2
             displayName: "Ensure Resource Group, App Service Plan & WebApp"
             inputs:
@@ -71,26 +68,25 @@ stages:
                 echo "Ensuring resource group exists..."
                 az group create \
                   --name $(RESOURCE_GROUP) \
-                  --location $(LOCATION)
+                  --location $(LOCATION)   # uses canadacentral
 
                 echo "Ensuring App Service Plan exists..."
-                if ! az appservice plan show --name $(APP_PLAN) --resource-group $(RESOURCE_GROUP) &> /dev/null; then
-                  az appservice plan create \
-                    --name $(APP_PLAN) \
-                    --resource-group $(RESOURCE_GROUP) \
-                    --sku B1 \
-                    --is-linux
-                fi
+                az appservice plan show --name $(APP_PLAN) --resource-group $(RESOURCE_GROUP) || \
+                az appservice plan create \
+                  --name $(APP_PLAN) \
+                  --resource-group $(RESOURCE_GROUP) \
+                  --sku B1 \
+                  --is-linux \
+                  --location $(LOCATION)
 
                 echo "Ensuring Web App exists..."
-                if ! az webapp show --name $(WEBAPP_NAME) --resource-group $(RESOURCE_GROUP) &> /dev/null; then
-                  az webapp create \
-                    --name $(WEBAPP_NAME) \
-                    --resource-group $(RESOURCE_GROUP) \
-                    --plan $(APP_PLAN) \
-                    --runtime "staticsite|1.0"
-                fi
-
+                az webapp show --name $(WEBAPP_NAME) --resource-group $(RESOURCE_GROUP) || \
+                az webapp create \
+                  --name $(WEBAPP_NAME) \
+                  --resource-group $(RESOURCE_GROUP) \
+                  --plan $(APP_PLAN) \
+                  --runtime "staticsite|1.0" \
+                  --location $(LOCATION)
           # --------------------------
           # Download build artifact
           # --------------------------
