@@ -32,6 +32,7 @@ stages:
         npm run build
       displayName: "Install dependencies and build assets"
 
+    # Publish build output as pipeline artifact
     - task: PublishPipelineArtifact@1
       inputs:
         targetPath: 'dist'
@@ -58,6 +59,9 @@ stages:
         deploy:
           steps:
 
+          # --------------------------
+          # CREATE RESOURCE GROUP, APP SERVICE PLAN & WEB APP
+          # --------------------------
           - task: AzureCLI@2
             displayName: "Ensure Resource Group, App Service Plan & WebApp"
             inputs:
@@ -68,24 +72,27 @@ stages:
                 echo "Ensuring resource group exists..."
                 az group create \
                   --name $(RESOURCE_GROUP) \
-                  --location $(LOCATION)   # uses canadacentral
-
-                echo "Ensuring App Service Plan exists..."
-                az appservice plan show --name $(APP_PLAN) --resource-group $(RESOURCE_GROUP) || \
-                az appservice plan create \
-                  --name $(APP_PLAN) \
-                  --resource-group $(RESOURCE_GROUP) \
-                  --sku B1 \
-                  --is-linux \
                   --location $(LOCATION)
 
+                echo "Ensuring App Service Plan exists..."
+                if ! az appservice plan show --name $(APP_PLAN) --resource-group $(RESOURCE_GROUP) &>/dev/null; then
+                  az appservice plan create \
+                    --name $(APP_PLAN) \
+                    --resource-group $(RESOURCE_GROUP) \
+                    --sku B1 \
+                    --is-linux \
+                    --location $(LOCATION)
+                fi
+
                 echo "Ensuring Web App exists..."
-                az webapp show --name $(WEBAPP_NAME) --resource-group $(RESOURCE_GROUP) || \
-                az webapp create \
-                  --name $(WEBAPP_NAME) \
-                  --resource-group $(RESOURCE_GROUP) \
-                  --plan $(APP_PLAN) \
-                  --runtime "staticsite|1.0"
+                if ! az webapp show --name $(WEBAPP_NAME) --resource-group $(RESOURCE_GROUP) &>/dev/null; then
+                  az webapp create \
+                    --name $(WEBAPP_NAME) \
+                    --resource-group $(RESOURCE_GROUP) \
+                    --plan $(APP_PLAN) \
+                    --runtime "staticsite|1.0"
+                fi
+
           # --------------------------
           # Download build artifact
           # --------------------------
