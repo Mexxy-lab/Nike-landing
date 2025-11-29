@@ -1,28 +1,83 @@
-trigger: 
+trigger:
 - main
 
 variables:
-  FEED_DETAILS: 'Nike-landing/Nike-landingpage'
+  FEED_NAME: 'Nike-landing/Nike-landingpage'
+  WEBAPP_NAME: 'Nike-landingpage'
+  SERVICE_CONNECTION: 'Nike-service connection'
 
 stages:
+# ============================
+# Build Stage
+# ============================
 - stage: Build
+  displayName: "Build website"
   jobs:
-  - job: Build
+  - job: BuildJob
     pool:
       vmImage: 'ubuntu-latest'
     steps:
-    - task: Npm@1
-      inputs:
-        command: 'custom'
-        customCommand: 'install -D tailwindcss postcss autoprefixer'
-    - task: Npm@1
-      inputs:
-        command: 'custom'
-        customCommand: 'run build'
 
-    - task: Npm@1
+    - checkout: self
+
+    - task: NodeTool@0
       inputs:
-        command: 'publish'
-        workingDir: './dist'
-        publishRegistry: 'useFeed'
-        publishFeed: '$(FEED_DETAILS)'
+        versionSpec: '18.x'
+
+    - script: |
+        npm install
+        npm install -D tailwindcss postcss autoprefixer
+        npm run build
+      displayName: "Install dependencies and build assets"
+
+    # Publish build output
+    - task: PublishPipelineArtifact@1
+      inputs:
+        targetPath: 'dist'
+        artifactName: 'drop'
+        publishLocation: 'pipeline'
+      displayName: "Publish build artifact"
+
+# ============================
+# Deploy Stage
+# ============================
+- stage: Deploy
+  displayName: "Deploy to Azure App Service"
+  dependsOn: Build
+  jobs:
+  - deployment: DeployJob
+    environment: 'production'
+    pool:
+      vmImage: 'ubuntu-latest'
+
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          
+          - download: current
+            artifact: drop
+            displayName: "Download build artifact"
+
+          # ---- DEPLOY APP SERVICE ----
+          - task: AzureRmWebAppDeployment@4
+            displayName: "Deploy to Azure Web App"
+            inputs:
+              azureSubscription: $(SERVICE_CONNECTION)
+              appType: webAppLinux
+              WebAppName: $(WEBAPP_NAME)
+              packageForLinux: '$(Pipeline.Workspace)/drop'
+              RuntimeStack: 'STATICSITE|1.0'
+              StartupCommand: ''
+
+          # ---- INLINE POST-DEPLOY SCRIPT ----
+          - task: AzureRmWebAppDeployment@4
+            displayName: "Run post-deployment script"
+            inputs:
+              azureSubscription: $(SERVICE_CONNECTION)
+              appType: webAppLinux
+              WebAppName: $(WEBAPP_NAME)
+              ScriptType: "Inline Script"
+              InlineScript: |
+                echo "Running post-deployment copy..."
+                cp -rf /home/site/wwwroot/package/* /home/site/wwwroot/
