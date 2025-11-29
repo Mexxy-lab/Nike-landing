@@ -11,7 +11,7 @@ variables:
 stages:
 
 # ============================
-# Build Stage1
+# Build Stage
 # ============================
 - stage: Build
   displayName: "Build website"
@@ -59,7 +59,7 @@ stages:
           steps:
 
           # --------------------------
-          # CREATE APP SERVICE PLAN + WEB APP
+          # Create Resource Group, App Service Plan, Web App
           # --------------------------
           - task: AzureCLI@2
             displayName: "Ensure Resource Group, App Service Plan & WebApp"
@@ -74,20 +74,22 @@ stages:
                   --location $(LOCATION)
 
                 echo "Ensuring App Service Plan exists..."
-                az appservice plan show --name $(APP_PLAN) --resource-group $(RESOURCE_GROUP) || \
-                az appservice plan create \
-                  --name $(APP_PLAN) \
-                  --resource-group $(RESOURCE_GROUP) \
-                  --sku B1 \
-                  --is-linux
+                if ! az appservice plan show --name $(APP_PLAN) --resource-group $(RESOURCE_GROUP) &> /dev/null; then
+                  az appservice plan create \
+                    --name $(APP_PLAN) \
+                    --resource-group $(RESOURCE_GROUP) \
+                    --sku B1 \
+                    --is-linux
+                fi
 
                 echo "Ensuring Web App exists..."
-                az webapp show --name $(WEBAPP_NAME) --resource-group $(RESOURCE_GROUP) || \
-                az webapp create \
-                  --name $(WEBAPP_NAME) \
-                  --resource-group $(RESOURCE_GROUP) \
-                  --plan $(APP_PLAN) \
-                  --runtime "staticsite|1.0"
+                if ! az webapp show --name $(WEBAPP_NAME) --resource-group $(RESOURCE_GROUP) &> /dev/null; then
+                  az webapp create \
+                    --name $(WEBAPP_NAME) \
+                    --resource-group $(RESOURCE_GROUP) \
+                    --plan $(APP_PLAN) \
+                    --runtime "staticsite|1.0"
+                fi
 
           # --------------------------
           # Download build artifact
@@ -113,11 +115,14 @@ stages:
           # Inline post-deployment copy
           # --------------------------
           - task: AzureCLI@2
-            displayName: "Run post-deployment script"
+            displayName: "Run post-deployment copy"
             inputs:
               azureSubscription: $(SERVICE_CONNECTION)
               scriptType: bash
               scriptLocation: inlineScript
               inlineScript: |
                 echo "Copying package content to wwwroot..."
-                az webapp ssh --name $(WEBAPP_NAME) --resource-group $(RESOURCE_GROUP) --command "cp -rf /home/site/wwwroot/package/* /home/site/wwwroot/"
+                # Using Kudu SSH instead of az webapp ssh (more reliable in pipelines)
+                curl -X POST -u ${{ secrets.AZURE_DEPLOY_USER }}:${{ secrets.AZURE_DEPLOY_PASSWORD }} \
+                  https://$(WEBAPP_NAME).scm.azurewebsites.net/api/command \
+                  -d "{\"command\":\"cp -rf /home/site/wwwroot/package/* /home/site/wwwroot/\"}"
