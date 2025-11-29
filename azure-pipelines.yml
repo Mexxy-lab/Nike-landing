@@ -48,6 +48,7 @@ stages:
   jobs:
 
   - deployment: DeployJob
+    environment: 'production'
     displayName: "Deploy site"
     pool:
       vmImage: 'ubuntu-latest'
@@ -99,8 +100,6 @@ stages:
           # DEPLOY TO AZURE WEB APP
           # --------------------------
           - task: AzureRmWebAppDeployment@4
-            env:
-              production: 'true'
             displayName: "Deploy Static Site"
             inputs:
               azureSubscription: $(SERVICE_CONNECTION)
