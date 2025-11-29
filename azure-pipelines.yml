@@ -25,7 +25,7 @@ stages:
 
     - task: NodeTool@0
       inputs:
-        versionSpec: '18.x'
+        versionSpec: '20.x'
 
     - script: |
         npm install
@@ -90,7 +90,7 @@ stages:
                     --name $(WEBAPP_NAME) \
                     --resource-group $(RESOURCE_GROUP) \
                     --plan $(APP_PLAN) \
-                    --runtime "NODE|18-lts"
+                    --runtime "NODE:20-lts"
                 fi
 
           # --------------------------
@@ -110,7 +110,7 @@ stages:
               appType: webAppLinux
               WebAppName: $(WEBAPP_NAME)
               packageForLinux: '$(Pipeline.Workspace)/drop'
-              RuntimeStack: 'NODE|18-lts'
+              RuntimeStack: "NODE:20-lts"
               StartupCommand: ''
 
           # --------------------------
