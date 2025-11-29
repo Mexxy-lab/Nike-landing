@@ -122,7 +122,4 @@ stages:
               scriptLocation: inlineScript
               inlineScript: |
                 echo "Copying package content to wwwroot..."
-                # Using Kudu SSH instead of az webapp ssh (more reliable in pipelines)
-                curl -X POST -u ${{ secrets.AZURE_DEPLOY_USER }}:${{ secrets.AZURE_DEPLOY_PASSWORD }} \
-                  https://$(WEBAPP_NAME).scm.azurewebsites.net/api/command \
-                  -d "{\"command\":\"cp -rf /home/site/wwwroot/package/* /home/site/wwwroot/\"}"
+                cp -rf $(Pipeline.Workspace)/drop/* /home/site/wwwroot/
