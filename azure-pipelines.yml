@@ -7,7 +7,6 @@ variables:
   SERVICE_CONNECTION: 'Nike-service connection'
 
 stages:
-
 # ============================
 # Build Stage
 # ============================
@@ -31,6 +30,7 @@ stages:
         npm run build
       displayName: "Install dependencies and build assets"
 
+    # Publish build output
     - task: PublishPipelineArtifact@1
       inputs:
         targetPath: 'dist'
@@ -45,9 +45,8 @@ stages:
   displayName: "Deploy to Azure App Service"
   dependsOn: Build
   jobs:
-
   - deployment: DeployJob
-    displayName: "Deploy site"
+    environment: 'production'
     pool:
       vmImage: 'ubuntu-latest'
 
@@ -55,11 +54,12 @@ stages:
       runOnce:
         deploy:
           steps:
-
+          
           - download: current
             artifact: drop
             displayName: "Download build artifact"
 
+          # ---- DEPLOY APP SERVICE ----
           - task: AzureRmWebAppDeployment@4
             displayName: "Deploy to Azure Web App"
             inputs:
@@ -69,19 +69,3 @@ stages:
               packageForLinux: '$(Pipeline.Workspace)/drop'
               RuntimeStack: 'STATICSITE|1.0'
               StartupCommand: ''
-
-          # ⬇️ Built-in post-deploy script for App Service Linux
-          - task: AzureAppServiceSettings@1
-            displayName: "Post-deployment fix permissions"
-            inputs:
-              azureSubscription: $(SERVICE_CONNECTION)
-              appName: $(WEBAPP_NAME)
-              resourceGroupName: ''
-              appSettings: |
-                [
-                  {
-                    "name": "WEBSITE_RUN_FROM_PACKAGE",
-                    "value": "1"
-                  }
-                ]
-
