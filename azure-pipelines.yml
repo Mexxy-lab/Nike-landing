@@ -2,11 +2,14 @@ trigger:
 - main
 
 variables:
-  FEED_NAME: 'Nike-landing/Nike-landingpage'
-  WEBAPP_NAME: 'Nike-landingpage'
-  SERVICE_CONNECTION: 'Nike-service connection'
+  RESOURCE_GROUP: "Nike-RG"
+  LOCATION: "eastus"
+  APP_PLAN: "Nike-AppServicePlan"
+  WEBAPP_NAME: "Nike-landingpage"
+  SERVICE_CONNECTION: "Nike-service connection"
 
 stages:
+
 # ============================
 # Build Stage
 # ============================
@@ -26,11 +29,9 @@ stages:
 
     - script: |
         npm install
-        npm install -D tailwindcss postcss autoprefixer
         npm run build
       displayName: "Install dependencies and build assets"
 
-    # Publish build output
     - task: PublishPipelineArtifact@1
       inputs:
         targetPath: 'dist'
@@ -42,11 +43,12 @@ stages:
 # Deploy Stage
 # ============================
 - stage: Deploy
-  displayName: "Deploy to Azure App Service"
+  displayName: "Provision Azure + Deploy App"
   dependsOn: Build
   jobs:
+
   - deployment: DeployJob
-    environment: 'production'
+    displayName: "Deploy site"
     pool:
       vmImage: 'ubuntu-latest'
 
@@ -54,14 +56,50 @@ stages:
       runOnce:
         deploy:
           steps:
-          
+
+          - checkout: self
+
+          # --------------------------
+          # CREATE APP SERVICE PLAN + WEB APP
+          # --------------------------
+          - task: AzureCLI@2
+            displayName: "Create AppService Plan and WebApp if not exist"
+            inputs:
+              azureSubscription: $(SERVICE_CONNECTION)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                echo "Ensuring resource group exists..."
+                az group create \
+                  --name $(RESOURCE_GROUP) \
+                  --location $(LOCATION)
+
+                echo "Ensuring App Service Plan exists..."
+                az appservice plan create \
+                  --name $(APP_PLAN) \
+                  --resource-group $(RESOURCE_GROUP) \
+                  --sku B1 \
+                  --is-linux
+
+                echo "Ensuring Web App exists..."
+                az webapp create \
+                  --name $(WEBAPP_NAME) \
+                  --resource-group $(RESOURCE_GROUP) \
+                  --plan $(APP_PLAN) \
+                  --runtime "staticsite|1.0" || echo "WebApp already exists"
+
+          # --------------------------
+          # Download artifact
+          # --------------------------
           - download: current
             artifact: drop
             displayName: "Download build artifact"
 
-          # ---- DEPLOY APP SERVICE ----
+          # --------------------------
+          # DEPLOY TO AZURE WEB APP
+          # --------------------------
           - task: AzureRmWebAppDeployment@4
-            displayName: "Deploy to Azure Web App"
+            displayName: "Deploy Static Site"
             inputs:
               azureSubscription: $(SERVICE_CONNECTION)
               appType: webAppLinux
