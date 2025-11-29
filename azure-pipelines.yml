@@ -11,7 +11,7 @@ variables:
 stages:
 
 # ============================
-# Build Stage
+# Build Stage1
 # ============================
 - stage: Build
   displayName: "Build website"
