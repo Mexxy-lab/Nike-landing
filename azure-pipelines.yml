@@ -127,17 +127,4 @@ stages:
               RuntimeStack: "NODE:20-lts"
               StartupCommand: ''
 
-          # --------------------------
-          # Inline post-deployment copy
-          # --------------------------
-          - task: AzureCLI@2
-            displayName: "Run post-deployment copy"
-            inputs:
-              azureSubscription: $(SERVICE_CONNECTION)
-              scriptType: bash
-              scriptLocation: inlineScript
-              inlineScript: |
-                echo "Copying package content to wwwroot..."
-                cp -rf $(Pipeline.Workspace)/drop/* /home/site/wwwroot/
-
 
