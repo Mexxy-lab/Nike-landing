@@ -33,12 +33,18 @@ stages:
       displayName: "Install dependencies and build assets"
 
     # Publish build output as pipeline artifact
-    - task: PublishPipelineArtifact@1
+    # - task: PublishPipelineArtifact@1
+    #   inputs:
+    #     targetPath: 'dist'
+    #     artifactName: 'drop'
+    #     publishLocation: 'pipeline'
+    #   displayName: "Publish build artifact"
+    - task: PublishBuildArtifacts@1
       inputs:
-        targetPath: 'dist'
-        artifactName: 'drop'
-        publishLocation: 'pipeline'
-      displayName: "Publish build artifact"
+        PathtoPublish: 'dist'
+        ArtifactName: 'drop'
+        publishLocation: 'Container'
+      displayName: "Publish build artifact"    
 
 # ============================
 # Deploy Stage
